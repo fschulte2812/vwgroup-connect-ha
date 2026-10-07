@@ -42,6 +42,32 @@ Versioning: [Semantic Versioning 2.0.0](https://semver.org/)
 
 ## [Unreleased]
 
+### Hinzugefügt / Added
+- **Six Škoda commands can now fall back to the official Škoda API when the app backend refuses
+  them.** Every Škoda command goes through the reverse-engineered app backend today, and that
+  backend is expected to be switched off. The official public API — the one you already use for
+  readings if you have a key — implements six of the same commands: start and stop charging,
+  start and stop climatisation, start and stop active ventilation. If the app backend refuses one
+  of those in a way that proves your car never received it, the official API is tried once.
+  Nothing changes while the app backend works.
+- **Six of twenty-four, and that is the honest number.** Locking, unlocking, flashing, waking and
+  every charging-settings change have no equivalent on the official API — it has nine endpoints
+  and no way to write settings at all — so they cannot be covered, now or later. If the app
+  backend goes away, those stop working. This buys time for the commands people use daily, not
+  for all of them.
+- Internal, no user-visible change: the fallback is deliberately narrow. It fires only on a
+  refusal that proves nothing was actuated, never after a server error or a dropped connection —
+  those are already retried up to three times underneath, so the car may have received the
+  command and a second channel would send it again. Auxiliary heating is excluded although the
+  official API has it, because the S-PIN is held per entry there and per vehicle here, and
+  repeated wrong PINs are how a vehicle PIN gets locked.
+
+### Behoben / Fixed
+- **A single rate-limit response from the official Škoda API could silence its readings long
+  after the limit had passed.** The `Retry-After` value from a throttled response was kept and
+  then re-applied to any later refusal, so one busy minute could park the channel for the whole
+  window again and again. The block now comes from the response in front of it.
+
 ## [4.11.1] - 2026-10-06 — The Fix button actually fixes / Der Fix-Knopf tut jetzt was er sagt
 
 ### Behoben / Fixed
