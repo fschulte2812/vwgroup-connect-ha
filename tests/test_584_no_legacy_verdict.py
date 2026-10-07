@@ -75,3 +75,17 @@ def test_verdict_set_exists_even_before_any_call() -> None:
     c = _client([_GOOD])
     asyncio.run(c._get_mbb_operationlist(VIN))
     assert c.mbb_no_legacy_vins == set()
+
+
+def test_verdict_warning_does_not_blame_only_the_primary_user_role(caplog) -> None:
+    """The 401 also reaches enrolled primary users (relation PRIMARY_USER,
+    carnetIndicator true, pre-flight ``eligible``), so the warning must name
+    that case and point at ``mbb_eligibility`` instead of only asking whether
+    the account is the primary user."""
+    c = _client([_AUTH_401])
+    with caplog.at_level("WARNING"):
+        asyncio.run(c._get_mbb_operationlist(VIN, for_command=True))
+    msg = " ".join(r.getMessage() for r in caplog.records)
+    assert "mbb_eligibility" in msg
+    assert "enrolled primary users" in msg
+    assert "Vehicle data is unaffected" in msg
