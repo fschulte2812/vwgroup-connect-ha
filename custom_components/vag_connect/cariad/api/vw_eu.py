@@ -2091,15 +2091,15 @@ class VWEUClient(CariadBaseClient):
                 _LOGGER.log(
                     logging.WARNING if first_denial else logging.DEBUG,
                     "MBB operationList ***%s → 401 gw.error.authentication: the "
-                    "gateway refused the legacy Car-Net operation list for this "
-                    "vehicle. Usually the account is not the primary user in the "
-                    "brand app — but it is also seen on enrolled primary users "
-                    "whose car no longer answers this legacy endpoint (check "
-                    "mbb_eligibility in the diagnostics: 'eligible' means the "
-                    "account side is fine). Either way it is not an expired "
-                    "token — refreshing or re-authenticating won't change it. "
-                    "Vehicle data is unaffected; MBB commands stay hidden for "
-                    "this car. Not retried for %d h.",
+                    "legacy gateway refuses this car. Often the account is not "
+                    "the primary user in the brand app, but it also happens on "
+                    "fully enrolled accounts. With a volkswagen.de channel, "
+                    "mbb_eligibility in the diagnostics tells them apart "
+                    "('eligible' = the account side is fine; empty = that check "
+                    "has not run). It is not an expired token — refreshing or "
+                    "re-authenticating won't change it. MBB commands stay hidden "
+                    "for this car; readings from volkswagen.de or the EU Data Act "
+                    "portal are not affected. Not retried for %d h.",
                     vin[-6:], int(_MBB_OPLIST_DENY_TTL.total_seconds() // 3600),
                 )
                 # #584 — cohort-only, read-only leapfrog probe. The legacy

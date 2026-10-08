@@ -47,9 +47,11 @@ Versioning: [Semantic Versioning 2.0.0](https://semver.org/)
   The warning asked "is the account the primary user in the brand app?" as if that were the only cause. On a
   Tiguan eHybrid MY2026 whose relation reads `PRIMARY_USER`, `enrollmentStatus COMPLETED`, `carnetIndicator true`
   — and whose own pre-flight says `mbb_eligibility: eligible` — the same 401 still arrives, so the question sent
-  the owner looking for a problem on the account side that is not there. The message now names both causes, points
-  at `mbb_eligibility` in the diagnostics to tell them apart, and says what the verdict does: vehicle data is
-  unaffected, MBB commands stay hidden for that car. Log text only; the verdict and its handling are unchanged.
+  the owner looking for a problem on the account side that is not there. The message now says the legacy gateway
+  refuses the car, that this also happens on fully enrolled accounts, and — for entries with a volkswagen.de
+  channel — points at `mbb_eligibility` to tell the two apart (empty means that check has not run). It no longer
+  promises that all vehicle data is unaffected, only readings from volkswagen.de or the EU Data Act portal. Log
+  text only; the verdict and its handling are unchanged.
 
 ## [4.11.1] - 2026-10-06 — The Fix button actually fixes / Der Fix-Knopf tut jetzt was er sagt
 
