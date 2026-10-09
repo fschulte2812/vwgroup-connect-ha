@@ -42,6 +42,36 @@ Versioning: [Semantic Versioning 2.0.0](https://semver.org/)
 
 ## [Unreleased]
 
+### Hinzugefügt / Added
+- **A car reading the EU Data Act portal gains one more diagnostic: when the instrument cluster
+  last recorded a warning.** A Touareg reported the field, and every sample we have of it — four,
+  from three different cars — carries an absolute timestamp, so it becomes a timestamp sensor
+  beside the existing raw warning value rather than being folded into it. Off by default, like
+  every diagnostic of this kind, and it only appears on cars that actually send it (#1757, thanks
+  @robertbakum).
+- Internal, no user-visible change: three further fields the same car reported stay deliberately
+  unmapped. The official field catalogue gives them no meaning and no unit at all, and every
+  sample so far is empty — so they raise no repair card, while staying visible on the raw-fields
+  sensor, which is what keeps a car that one day sends a real value findable (#1757, #1164).
+- **Six Škoda commands can now fall back to the official Škoda API when the app backend refuses
+  them.** Every Škoda command goes through the reverse-engineered app backend today, and that
+  backend is expected to be switched off. The official public API — the one you already use for
+  readings if you have a key — implements six of the same commands: start and stop charging,
+  start and stop climatisation, start and stop active ventilation. If the app backend refuses one
+  of those in a way that proves your car never received it, the official API is tried once.
+  Nothing changes while the app backend works.
+- **Six of twenty-four, and that is the honest number.** Locking, unlocking, flashing, waking and
+  every charging-settings change have no equivalent on the official API — it has nine endpoints
+  and no way to write settings at all — so they cannot be covered, now or later. If the app
+  backend goes away, those stop working. This buys time for the commands people use daily, not
+  for all of them.
+- Internal, no user-visible change: the fallback is deliberately narrow. It fires only on a
+  refusal that proves nothing was actuated, never after a server error or a dropped connection —
+  those are already retried up to three times underneath, so the car may have received the
+  command and a second channel would send it again. Auxiliary heating is excluded although the
+  official API has it, because the S-PIN is held per entry there and per vehicle here, and
+  repeated wrong PINs are how a vehicle PIN gets locked.
+
 ### Geändert / Changed
 - **The "MBB operationList → 401" warning no longer tells primary users to become primary user (#584, #923).**
   The warning asked "is the account the primary user in the brand app?" as if that were the only cause. On a
@@ -52,6 +82,74 @@ Versioning: [Semantic Versioning 2.0.0](https://semver.org/)
   channel — points at `mbb_eligibility` to tell the two apart (empty means that check has not run). It no longer
   promises that all vehicle data is unaffected, only readings from volkswagen.de or the EU Data Act portal. Log
   text only; the verdict and its handling are unchanged.
+- Internal, no user-visible change: Home Assistant 2026.10 replaced the library it validates
+  configuration with. Nothing about this integration broke — Home Assistant keeps the old name
+  working on purpose, and names custom integrations as the reason — but our type checking had to
+  follow it, and until it did, every change to this project failed its automated checks. The
+  validation library is now reached through one documented place instead of six, so the next step
+  of that migration is a one-line change, and nine repair dialogs carry the result type Home
+  Assistant now expects. Verified against both the new release and the previous one.
+- **Requests to the EU Data Act portal now say who they are, and the login makes one fewer
+  round trip (#1740, thanks @VWGroupDatahub).** The portal's operator asked for a dedicated
+  user-agent on requests to their domain so they can tell traffic apart and report problems
+  back to whoever is causing them — our data requests had been going out under the HTTP
+  library's default name. They also confirmed the priming request we made before signing in
+  was unnecessary, because the load balancer hands over the cookie it was there to collect
+  on the redirect from the login server anyway. Nothing changes for you; signing in is one
+  request shorter.
+- Internal, no user-visible change: the dedicated agent goes on portal-domain requests only.
+  The sign-in steps keep the browser agent they have carried since v2.10.x, when the WAF in
+  front of the login server started answering `403` to a non-browser one (#388, #393).
+
+### Behoben / Fixed
+- **A Škoda API key you typed in yourself is no longer thrown away when another car enrols
+  automatically.** Arming the official channel from the stored keys replaced it with only the
+  automatic ones, so a car that depended on the key you entered quietly lost its backup
+  connection — and, since the official channel started carrying commands, its commands too.
+  Nothing reported it, because the arming itself succeeded.
+- **The message announcing automatic Škoda enrolment no longer describes an older version of
+  itself.** It said the official channel "stays on standby and only reads when your main
+  connection can't". That stopped being true in v4.6.1, when the channel became a live source
+  read on every update. It now says what actually happens — read every cycle alongside the normal
+  connection, stepping in on its own if that fails, paced so the hourly limit is never the
+  bottleneck — in all thirteen languages.
+- **Two things Home Assistant 2026.10 started warning about in our LLM tools are dealt with before
+  they become errors.** Each of the Škoda tools now names the integration it comes from, and a tool
+  hands its result back in the container the newer Home Assistant expects instead of a bare object.
+  Home Assistant had been papering over both and writing a deprecation line into your log on every
+  tool call; the first becomes a hard error in 2027.10, the second in 2027.11. Nothing changes in
+  what the tools do or what an assistant sees, and older Home Assistant builds still get exactly
+  the shape they expect.
+- A car sending an empty value for the raw dashboard-warning reading no longer creates a sensor
+  that shows nothing. Found while mapping its sibling above.
+- **A solved Porsche captcha is now replayed into the login it belongs to.** When Porsche puts a
+  captcha in front of you, the integration showed it, you typed it, and the answer went back on a
+  brand-new connection that had forgotten everything about the sign-in it was answering for — so
+  Porsche could reasonably refuse a correct answer. The login now carries its session across the
+  pause while you read the image. Every other project that handles this captcha keeps that session
+  alive; we were the one that did not. Honest caveat: nobody here has an account that produces a
+  Porsche captcha, so this is reasoned from the code and from what the working clients do, not
+  confirmed on a real one — if you hit it, the report link in the dialog is still worth using
+  (#1752).
+- **A Porsche login that stops now asks you for something you can actually produce.** The
+  report link the dialog hands you carried one set of instructions for everyone: turn on debug
+  logging from the integration's three-dots menu and try the login again. That menu only exists
+  once the integration is set up, so everyone whose very first setup failed was being sent to a
+  button they do not have. And when the login hits the my.porsche.com wall, the line we need is
+  already in your normal log from the attempt you just made, so asking for another attempt cost
+  you a retry for nothing on an account where repeated failures cause lockouts. A failed setup now
+  gets the `configuration.yaml` route instead, a wall report points at the line already written,
+  and neither asks you to try again (#1737).
+- **A password Porsche refuses at the captcha step is no longer reported as a used-up captcha.**
+  Typing a correct captcha with an e-mail or password Porsche rejects produced "that captcha could
+  not be verified and it is now used up", which sent people to re-check a challenge that was fine
+  and invited exactly the retry that step exists to prevent. It now says what happened (#1752).
+- Porsche login reports name the integration version, the way the Scout and error reports already
+  do — one less round of "which version are you on" (#1736/#1738).
+- **A single rate-limit response from the official Škoda API could silence its readings long
+  after the limit had passed.** The `Retry-After` value from a throttled response was kept and
+  then re-applied to any later refusal, so one busy minute could park the channel for the whole
+  window again and again. The block now comes from the response in front of it.
 
 ## [4.11.1] - 2026-10-06 — The Fix button actually fixes / Der Fix-Knopf tut jetzt was er sagt
 
