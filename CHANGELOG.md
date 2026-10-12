@@ -42,6 +42,15 @@ Versioning: [Semantic Versioning 2.0.0](https://semver.org/)
 
 ## [Unreleased]
 
+### Geändert / Changed
+- **Some cars that the legacy MBB host turns away now get their service list from the EU-DP
+  host.** When the legacy host answers `401 gw.error.authentication`, the operationList is now
+  requested once from the EU-DP host before the car is marked "no legacy". That list is used
+  only if it parses and contains services; an empty or error body records the verdict exactly
+  as before. Read-only: commands stay hidden for these cars and are refused before any S-PIN
+  step, because the S-PIN host has not been checked yet. Diagnostics show such cars under
+  `mbb_eudp_oplist`, and the debug log names the host each service points to (#1766).
+
 ## [4.13.0] - 2026-10-10 — Six reporters' diagnostic readings, and two accounts that read the same car
 
 ### Hinzugefügt / Added
